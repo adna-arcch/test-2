@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LearnSphere AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        /* A calm dark slate */
+        background-color: #0F172A; 
+      }
+      /* Simple fade-in animation */
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+    </style>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.26.0"
+      }
+    }
+    </script>
+  
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel" data-type="module">
+// LearnSphere AI - Single File Application
+// All application logic is contained within this script.
+
+// React is available globally from the CDN, so let's get hooks from it.
+const { useState, useCallback, useMemo, useEffect, useRef } = React;
+
+// Import the Gemini SDK from the importmap.
+import { GoogleGenAI, Type } from "@google/genai";
+
+// From: constants.ts
+const UI_TEXT = {
+  "en": {
+    "appName": "LearnSphere AI",
+    "tagline": "Your AI-Powered Learning Assistant",
+    "uploadCardTitle": "Provide Your Notes",
+    "uploadHint": "Upload a PDF, image, or document to start.",
+    "supportedFiles": "Supported: .pdf, .png, .jpg, .jpeg, .webp",
+    "fileSizeLimit": "Max file size: 10MB",
+    "generateButton": "Generate Summary & Quiz",
+    "generating": "Generating...",
+    "summaryTab": "Summary",
+    "quizTab": "Quiz",
+    "translatorTab": "Translator",
+    "timetableTab": "Timetable",
+    "pastPapersTab": "Past Papers",
+    "summaryTitle": "AI Generated Summary",
+    "quizTitle": "Test Your Knowledge",
+    "checkAnswers": "Check Answers",
+    "correct": "Correct!",
+    "incorrect": "Incorrect. Correct answer:",
+    "translatorTitle": "Language Translator",
+    "translateButton": "Translate",
+    "translationPlaceholder": "Enter text to translate...",
+    "errorTitle": "An Error Occurred",
+    "errorFileUpload": "Error processing file. Please try a different file.",
+    "errorGeneration": "Failed to generate content. Please check your API key and try again.",
+    "errorNoInput": "Please upload a file or enter some text to begin.",
+    "targetLanguage": "Target Language",
+    "english": "English",
+    "sinhala": "Sinhala",
+    "timetableTitle": "My Weekly Timetable",
+    "addEntryButton": "Add Entry",
+    "dayLabel": "Day",
+    "startTimeLabel": "Start Time",
+    "endTimeLabel": "End Time",
+    "subjectLabel": "Subject / Task",
+    "subjectPlaceholder": "e.g., Physics Chapter 3",
+    "add": "Add",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday",
+    "noEntries": "No entries for this day.",
+    "textInputTab": "Text Input",
+    "fileInputTab": "File Upload",
+    "textInputPlaceholder": "Paste or type your notes here...",
+    "welcomeTitle": "Ready to Learn?",
+    "welcomeMessage": "Get started by providing your study material on the left to generate an AI summary and quiz.",
+    "removeFile": "Remove",
+    "swapLanguages": "Swap Languages",
+    "fileSelected": "File selected:",
+    "pastPapersTitle": "A/L Past Papers",
+    "filterByYear": "Filter by Year",
+    "allYears": "All Years",
+    "filterBySubject": "Filter by Subject",
+    "allSubjects": "All Subjects",
+    "accounting": "Accounting",
+    "ict": "ICT",
+    "businessStudies": "Business Studies",
+    "filterByMedium": "Filter by Medium",
+    "allMediums": "All Mediums",
+    "englishMedium": "English Medium",
+    "sinhalaMedium": "Sinhala Medium",
+    "downloadPaper": "View / Download",
+    "noPapersFound": "No past papers found for the selected filters.",
+    "addPastPaper": "Add New Past Paper",
+    "yearLabel": "Year",
+    "mediumLabel": "Medium",
+    "uploadFile": "Upload File",
+    "addPaperButton": "Add Paper",
+    "deletePaper": "Delete",
+    "stopGenerating": "Stop"
+  },
+  "si": {
+    "appName": "LearnSphere AI",
+    "tagline": "ඔබගේ AI බලයෙන් ක්‍රියාත්මක වන ඉගෙනුම් සහායකයා",
+    "uploadCardTitle": "ඔබගේ සටහන් සපයන්න",
+    "uploadHint": "ආරම්භ කිරීමට PDF, රූපයක් හෝ ලේඛනයක් උඩුගත කරන්න.",
+    "supportedFiles": "සහාය දක්වයි: .pdf, .png, .jpg, .jpeg, .webp",
+    "fileSizeLimit": "උපරිම ගොනු විශාලත්වය: 10MB",
+    "generateButton": "සාරාංශය සහ ප්‍රශ්නාවලිය සාදන්න",
+    "generating": "නිර්මාණය කරමින්...",
+    "summaryTab": "සාරාංශය",
+    "quizTab": "ප්‍රශ්නාවලිය",
+    "translatorTab": "පරිවර්තකය",
+    "timetableTab": "කාලසටහන",
+    "pastPapersTab": "පසුගිය ප්‍රශ්න පත්‍ර",
+    "summaryTitle": "AI මගින් ජනනය කරන ලද සාරාංශය",
+    "quizTitle": "ඔබේ දැනුම පරීක්ෂා කරන්න",
+    "checkAnswers": "පිළිතුරු පරීක්ෂා කරන්න",
+    "correct": "නිවැරදියි!",
+    "incorrect": "වැරදියි. නිවැරදි පිළිතුර:",
+    "translatorTitle": "භාෂා පරිවර්තකය",
+    "translateButton": "පරිවර්තනය කරන්න",
+    "translationPlaceholder": "පරිවර්තනය කිරීමට පෙළ ඇතුළත් කරන්න...",
+    "errorTitle": "දෝෂයක් ඇතිවිය",
+    "errorFileUpload": "ගොනුව සැකසීමේ දෝෂයකි. කරුණාකර වෙනත් ගොනුවක් උත්සාහ කරන්න.",
+    "errorGeneration": "අන්තර්ගතය ජනනය කිරීමට අසමත් විය. කරුණාකර ඔබගේ API යතුර පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
+    "errorNoInput": "ආරම්භ කිරීමට කරුණาකර ගොනුවක් උඩුගත කරන්න හෝ පෙළක් ඇතුළත් කරන්න.",
+    "targetLanguage": "ඉලක්ක භාෂාව",
+    "english": "ඉංග්‍රීසි",
+    "sinhala": "සිංහල",
+    "timetableTitle": "මගේ සතිපතා කාලසටහන",
+    "addEntryButton": "නව ඇතුළත් කිරීම",
+    "dayLabel": "දිනය",
+    "startTimeLabel": "ආරම්භක වේලාව",
+    "endTimeLabel": "අවසාන වේලාව",
+    "subjectLabel": "විෂය / කාර්යය",
+    "subjectPlaceholder": "උදා: භෞතික විද්‍යාව 3 অধ্যায়",
+    "add": "එක් කරන්න",
+    "monday": "සඳුදා",
+    "tuesday": "අඟහරුවාදා",
+    "wednesday": "බදාදා",
+    "thursday": "බ්‍රහස්පතින්දා",
+    "friday": "සිකුරාදා",
+    "saturday": "සෙනසුරාදා",
+    "sunday": "ඉරිදා",
+    "noEntries": "මෙම දිනය සඳහා ඇතුළත් කිරීම් නොමැත.",
+    "textInputTab": "පෙළ ආදානය",
+    "fileInputTab": "ගොනු උඩුගත කිරීම",
+    "textInputPlaceholder": "ඔබගේ සටහන් මෙහි අලවන්න හෝ ටයිප් කරන්න...",
+    "welcomeTitle": "ඉගෙනීමට සූදානම්ද?",
+    "welcomeMessage": "ආරම්භ කිරීමට වම් පසින් ඔබගේ අධ්‍යයන තොරතුරු සපයන්න.",
+    "removeFile": "ඉවත් කරන්න",
+    "swapLanguages": "භාෂා මාරු කරන්න",
+    "fileSelected": "ගොනුව තෝරාගෙන ඇත:",
+    "pastPapersTitle": "උ/පෙළ පසුගිය විභාග ප්‍රශ්න පත්‍ර",
+    "filterByYear": "වර්ෂය අනුව පෙරහන් කරන්න",
+    "allYears": "සියලුම වර්ෂ",
+    "filterBySubject": "විෂය අනුව පෙරහන් කරන්න",
+    "allSubjects": "සියලුම විෂයන්",
+    "accounting": "ගිණුම්කරණය",
+    "ict": "තොරතුරු හා සන්නිවේදන තාක්ෂණය",
+    "businessStudies": "ව්‍යාපාර අධ්‍යයනය",
+    "filterByMedium": "මාධ්‍යය අනුව පෙරහන් කරන්න",
+    "allMediums": "සියලුම මාධ්‍යයන්",
+    "englishMedium": "ඉංග්‍රීසි මාධ්‍යය",
+    "sinhalaMedium": "සිංහල මාධ්‍යය",
+    "downloadPaper": "බැලීම / බාගත කිරීම",
+    "noPapersFound": "තෝරාගත් පෙරහන් සඳහා ප්‍රශ්න පත්‍ර හමු නොවීය.",
+    "addPastPaper": "නව ප්‍රශ්න පත්‍රයක් එක් කරන්න",
+    "yearLabel": "වර්ෂය",
+    "mediumLabel": "මාධ්‍යය",
+    "uploadFile": "ගොනුව උඩුගත කරන්න",
+    "addPaperButton": "ප්‍රශ්න පත්‍රය එක් කරන්න",
+    "deletePaper": "මකන්න",
+    "stopGenerating": "නවත්වන්න"
+  }
+};
+
+// From: data/pastpapers.ts
+const PAST_PAPERS_DATA = [];
+
+// From: services/geminiService.ts
+const API_KEY = process.env.API_KEY;
+
+if (!API_KEY) {
+  console.warn("API Key not found. Please ensure the API_KEY environment variable is set for this environment.");
+}
+
+const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+const fileToGenerativePart = async (file) => {
+  const base64EncodedDataPromise = new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result.split(',')[1]);
+      } else {
+        reject(new Error("Failed to read file as data URL"));
+      }
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+
+  const data = await base64EncodedDataPromise;
+  return {
+    inlineData: {
+      data,
+      mimeType: file.type,
+    },
+  };
+};
+
+const quizSchema = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      question: { type: Type.STRING, description: 'The quiz question.' },
+      options: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'An array of 4 possible answers.' },
+      correctAnswer: { type: Type.STRING, description: 'The correct answer from the options.' },
+    },
+    required: ['question', 'options', 'correctAnswer'],
+  },
+};
+
+const generateSummaryAndQuiz = async (file, language) => {
+  const model = 'gemini-2.5-flash';
+  const filePart = await fileToGenerativePart(file);
+  const languageName = language === 'si' ? 'Sinhala' : 'English';
+  const summaryPrompt = \`Summarize the key points from this document in \${languageName}. Provide a concise but comprehensive summary that captures the main ideas, arguments, and conclusions.\`;
+  
+  const summaryResponse = await ai.models.generateContent({
+    model,
+    contents: [{ parts: [filePart, { text: summaryPrompt }] }],
+  });
+  const summary = summaryResponse.text;
+
+  const quizPrompt = \`Based on the following summary, create a multiple-choice quiz with 4 questions to test understanding, also in \${languageName}. Each question should have 4 options, with one clear correct answer. Ensure the correct answer is one of the provided options. The entire quiz (questions, options, correct answer) must be in \${languageName}.
+
+Summary:
+\${summary}\`;
+  
+  const quizResponse = await ai.models.generateContent({
+    model,
+    contents: quizPrompt,
+    config: { responseMimeType: "application/json", responseSchema: quizSchema },
+  });
+  const quiz = JSON.parse(quizResponse.text);
+  return { summary, quiz };
+};
+
+const generateSummaryAndQuizFromText = async (text, language) => {
+  const model = 'gemini-2.5-flash';
+  const languageName = language === 'si' ? 'Sinhala' : 'English';
+  const summaryPrompt = \`Summarize the key points from the following text in \${languageName}. Provide a concise but comprehensive summary that captures the main ideas, arguments, and conclusions.\\n\\nText:\\n\${text}\`;
+  
+  const summaryResponse = await ai.models.generateContent({ model, contents: summaryPrompt });
+  const summary = summaryResponse.text;
+  
+  const quizPrompt = \`Based on the following summary, create a multiple-choice quiz with 4 questions to test understanding, also in \${languageName}. Each question should have 4 options, with one clear correct answer. Ensure the correct answer is one of the provided options. The entire quiz (questions, options, correct answer) must be in \${languageName}.
+
+Summary:
+\${summary}\`;
+  
+  const quizResponse = await ai.models.generateContent({
+    model,
+    contents: quizPrompt,
+    config: { responseMimeType: "application/json", responseSchema: quizSchema },
+  });
+  const quiz = JSON.parse(quizResponse.text);
+  return { summary, quiz };
+};
+
+const translateText = async (text, targetLanguage) => {
+  const model = 'gemini-2.5-flash';
+  const prompt = \`Translate the following text to \${targetLanguage}. Provide only the translated text, with no additional commentary or explanations.\\n\\nText: "\${text}"\`;
+  const response = await ai.models.generateContent({ model, contents: prompt });
+  return response.text;
+};
+
+// --- Component Definitions ---
+
+const LanguageSelector = ({ language, setLanguage }) => (
+  <div className="relative">
+    <select
+      value={language}
+      onChange={(e) => setLanguage(e.target.value)}
+      className="appearance-none bg-slate-700 border border-slate-600 text-slate-200 py-2 px-4 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+    >
+      <option value="en">English</option>
+      <option value="si">සිංහල</option>
+    </select>
+    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-300">
+      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+    </div>
+  </div>
+);
+
+const Header = ({ language, setLanguage, t }) => (
+  <header className="bg-slate-800 shadow-md p-4 flex justify-between items-center rounded-xl border border-slate-700">
+    <div className="flex items-center space-x-3">
+      <div className="w-10 h-10 bg-sky-600 rounded-full flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      </div>
+      <h1 className="text-2xl font-bold text-slate-100">{t('appName')}</h1>
+    </div>
+    <LanguageSelector language={language} setLanguage={setLanguage} />
+  </header>
+);
+
+const Loader = ({ text, onStop, stopText }) => (
+  <div className="flex flex-col items-center justify-center space-y-4 p-8 bg-slate-800/50 rounded-lg">
+    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-sky-500"></div>
+    <p className="text-slate-300 font-medium text-lg">{text}</p>
+    {onStop && (
+      <button onClick={onStop} className="mt-2 bg-slate-600 text-slate-200 font-bold py-2 px-6 rounded-lg shadow-md hover:bg-slate-500 transition">
+        {stopText || 'Stop'}
+      </button>
+    )}
+  </div>
+);
+
+const TabButton = ({ label, isActive, onClick, icon, disabled = false }) => {
+  const baseClasses = "flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-sky-500";
+  const activeClasses = "bg-sky-600 text-white shadow";
+  const inactiveClasses = "bg-transparent text-slate-400 hover:bg-slate-700 hover:text-slate-200";
+  const disabledClasses = "text-slate-600 cursor-not-allowed";
+  return (
+    <button onClick={onClick} disabled={disabled} className={\`\${baseClasses} \${disabled ? disabledClasses : isActive ? activeClasses : inactiveClasses}\`}>
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+};
+
+const QuizView = ({ quiz, t }) => {
+  const [answers, setAnswers] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleOptionChange = (questionIndex, option) => {
+    setAnswers({ ...answers, [questionIndex]: option });
+  };
+  const handleSubmit = () => setSubmitted(true);
+
+  const getOptionClasses = (questionIndex, option, correctAnswer) => {
+    const base = "w-full text-left p-3 rounded-lg border-2 transition-all cursor-pointer";
+    if (submitted) {
+      if (option === correctAnswer) return \`\${base} bg-green-900/50 border-green-500 text-green-300\`;
+      if (answers[questionIndex] === option) return \`\${base} bg-red-900/50 border-red-500 text-red-300\`;
+    }
+    if (answers[questionIndex] === option) return \`\${base} bg-sky-900/50 border-sky-500 text-sky-300\`;
+    return \`\${base} bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300\`;
+  };
+
+  if (!quiz || quiz.length === 0) return null;
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      <h2 className="text-3xl font-bold text-slate-100">{t('quizTitle')}</h2>
+      <div className="space-y-6">
+        {quiz.map((q, index) => (
+          <div key={index} className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
+            <p className="font-semibold text-lg text-slate-200 mb-4">{index + 1}. {q.question}</p>
+            <div className="space-y-3">
+              {q.options.map((option, optIndex) => (
+                <button key={optIndex} onClick={() => !submitted && handleOptionChange(index, option)} disabled={submitted} className={getOptionClasses(index, option, q.correctAnswer)}>
+                  {option}
+                </button>
+              ))}
+            </div>
+            {submitted && (
+              <div className="mt-4 text-sm font-medium">
+                {answers[index] === q.correctAnswer ? (
+                  <p className="text-green-400">{t('correct')}</p>
+                ) : (
+                  <p className="text-red-400">{t('incorrect')} <span className="font-bold text-slate-100">{q.correctAnswer}</span></p>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {!submitted && (
+        <div className="text-center">
+          <button onClick={handleSubmit} className="bg-sky-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-sky-500 transition-transform transform hover:scale-105">
+            {t('checkAnswers')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TranslatorView = ({ t }) => {
+  const [inputText, setInputText] = useState('');
+  const [translatedText, setTranslatedText] = useState('');
+  const [targetLanguage, setTargetLanguage] = useState('Sinhala');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const isCancelledRef = useRef(false);
+
+  const handleStopTranslate = () => {
+    isCancelledRef.current = true;
+    setIsLoading(false);
+  };
+
+  const handleTranslate = async () => {
+    if (!inputText.trim()) return;
+    isCancelledRef.current = false;
+    setIsLoading(true);
+    setError('');
+    setTranslatedText('');
+    try {
+      const result = await translateText(inputText, targetLanguage);
+      if (!isCancelledRef.current) setTranslatedText(result);
+    } catch (err) {
+      if (!isCancelledRef.current) {
+        console.error(err);
+        setError(t('errorGeneration'));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSwap = () => {
+    setInputText(translatedText);
+    setTranslatedText(inputText);
+    setTargetLanguage(prev => prev === 'English' ? 'Sinhala' : 'English');
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <h2 className="text-3xl font-bold text-slate-100">{t('translatorTitle')}</h2>
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
+        <textarea value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder={t('translationPlaceholder')} className="w-full h-48 p-4 border-2 bg-slate-700 text-slate-200 border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-400" />
+        <button onClick={handleSwap} title={t('swapLanguages')} className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-sky-400 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+        </button>
+        <div className="w-full h-48 p-4 bg-slate-900 border-2 border-slate-700 rounded-lg overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sky-500"></div></div>
+          ) : (
+            <p className="text-slate-300 whitespace-pre-wrap">{translatedText}</p>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center space-x-4">
+        <div className="flex-grow">
+          <label htmlFor="target-lang" className="block text-sm font-medium text-slate-300 mb-1">{t('targetLanguage')}</label>
+          <select id="target-lang" value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)} className="w-full bg-slate-700 border border-slate-600 text-slate-200 py-2 px-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="Sinhala">{t('sinhala')}</option>
+            <option value="English">{t('english')}</option>
+          </select>
+        </div>
+        <button onClick={isLoading ? handleStopTranslate : handleTranslate} disabled={!isLoading && !inputText.trim()} className="self-end bg-sky-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-sky-500 transition disabled:bg-slate-600 disabled:cursor-not-allowed">
+          {isLoading ? <span>{t('stopGenerating')}</span> : <span>{t('translateButton')}</span>}
+        </button>
+      </div>
+      {error && (
+        <div className="bg-red-900/30 border-l-4 border-red-500 text-red-300 p-4 rounded-md" role="alert">
+          <p className="font-bold">{t('errorTitle')}</p>
+          <p>{error}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const TimetableView = ({ entries, onAdd, onDelete, t }) => {
+  const [day, setDay] = useState('Monday');
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('10:00');
+  const [subject, setSubject] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (subject.trim()) {
+      onAdd({ day, startTime, endTime, subject });
+      setSubject('');
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      <h2 className="text-3xl font-bold text-slate-100">{t('timetableTitle')}</h2>
+      <form onSubmit={handleSubmit} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300">{t('dayLabel')}</label>
+            <select value={day} onChange={e => setDay(e.target.value)} className="mt-1 block w-full p-2 bg-slate-700 border-slate-600 text-slate-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+              {DAYS.map(d => <option key={d} value={d}>{t(d.toLowerCase())}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300">{t('startTimeLabel')}</label>
+            <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="mt-1 block w-full p-2 bg-slate-700 border-slate-600 text-slate-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300">{t('endTimeLabel')}</label>
+            <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="mt-1 block w-full p-2 bg-slate-700 border-slate-600 text-slate-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" />
+          </div>
+          <div className="md:col-span-2 lg:col-span-1">
+            <label className="block text-sm font-medium text-slate-300">{t('subjectLabel')}</label>
+            <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder={t('subjectPlaceholder')} className="mt-1 block w-full p-2 bg-slate-700 border-slate-600 text-slate-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 placeholder-slate-400" />
+          </div>
+        </div>
+        <button type="submit" className="w-full md:w-auto bg-sky-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-sky-500 transition">{t('add')}</button>
+      </form>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {DAYS.map(dayOfWeek => {
+          const dayEntries = entries.filter(e => e.day === dayOfWeek).sort((a, b) => a.startTime.localeCompare(b.startTime));
+          return (
+            <div key={dayOfWeek} className="bg-slate-800 p-4 rounded-xl shadow-md border border-slate-700">
+              <h3 className="font-bold text-lg text-sky-400 border-b-2 border-slate-700 pb-2 mb-3">{t(dayOfWeek.toLowerCase())}</h3>
+              <div className="space-y-2">
+                {dayEntries.length > 0 ? dayEntries.map(entry => (
+                  <div key={entry.id} className="flex justify-between items-center bg-slate-700/50 p-2 rounded-md transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:bg-slate-700">
+                    <div>
+                      <p className="font-semibold text-slate-200">{entry.subject}</p>
+                      <p className="text-xs text-slate-400">{entry.startTime} - {entry.endTime}</p>
+                    </div>
+                    <button onClick={() => onDelete(entry.id)} className="text-slate-500 hover:text-red-500 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                )) : <p className="text-sm text-slate-500 italic">{t('noEntries')}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const WelcomeView = ({ t }) => (
+  <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in">
+    <div className="w-24 h-24 bg-slate-700 rounded-full flex items-center justify-center mb-6">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+      </svg>
+    </div>
+    <h2 className="text-3xl font-bold text-slate-100">{t('welcomeTitle')}</h2>
+    <p className="mt-2 text-slate-400 max-w-md">{t('welcomeMessage')}</p>
+  </div>
+);
+
+const subjects = ['Accounting', 'ICT', 'Business Studies'];
+const mediums = ['English', 'Sinhala'];
+const subjectKeys = { 'Accounting': 'accounting', 'ICT': 'ict', 'Business Studies': 'businessStudies' };
+const mediumKeys = { 'English': 'englishMedium', 'Sinhala': 'sinhalaMedium' };
+
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = error => reject(error);
+});
+
+const AddPaperForm = ({ onAdd, t }) => {
+    const [year, setYear] = useState(new Date().getFullYear());
+    const [subject, setSubject] = useState('Accounting');
+    const [medium, setMedium] = useState('English');
+    const [file, setFile] = useState(null);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!file) return alert("Please select a file to upload.");
+        try {
+            const fileUrl = await fileToBase64(file);
+            onAdd({ year, subject, medium, url: fileUrl, fileName: file.name });
+            setFile(null);
+            e.target.reset();
+        } catch (error) {
+            console.error("Error converting file to Base64", error);
+            alert("Error processing file. Please try again.");
+        }
+    }
+    
+    return (
+        <form onSubmit={handleSubmit} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 space-y-4 mb-8">
+            <h3 className="text-xl font-bold text-slate-100">{t('addPastPaper')}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label className="block text-sm font-medium text-slate-300">{t('yearLabel')}</label>
+                    <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} required min="2000" max={new Date().getFullYear()} className="mt-1 block w-full p-2 bg-slate-700 border-slate-600 text-slate-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-300">{t('subjectLabel')}</label>
+                    <select value={subject} onChange={e => setSubject(e.target.value)} className="mt-1 block w-full p-2 bg-slate-700 border-slate-600 text-slate-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                      {subjects.map(s => <option key={s} value={s}>{t(subjectKeys[s])}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-300">{t('mediumLabel')}</label>
+                    <select value={medium} onChange={e => setMedium(e.target.value)} className="mt-1 block w-full p-2 bg-slate-700 border-slate-600 text-slate-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                      {mediums.map(m => <option key={m} value={m}>{t(mediumKeys[m])}</option>)}
+                    </select>
+                </div>
+                <div className="md:col-span-2 lg:col-span-1">
+                  <label className="block text-sm font-medium text-slate-300">{t('uploadFile')}</label>
+                  <input type="file" onChange={e => setFile(e.target.files ? e.target.files[0] : null)} required accept=".pdf" className="mt-1 block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-600 file:text-white hover:file:bg-sky-500 cursor-pointer"/>
+                </div>
+            </div>
+            <button type="submit" disabled={!file} className="w-full md:w-auto bg-sky-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-sky-500 transition disabled:bg-slate-600 disabled:cursor-not-allowed">{t('addPaperButton')}</button>
+        </form>
+    );
+}
+
+const PastPapersView = ({ papers, onAdd, onDelete, t }) => {
+  const [selectedYear, setSelectedYear] = useState('all');
+  const [selectedSubject, setSelectedSubject] = useState('all');
+  const [selectedMedium, setSelectedMedium] = useState('all');
+
+  const years = [...new Set(papers.map(p => p.year))].sort((a, b) => Number(b) - Number(a));
+
+  const filteredPapers = useMemo(() => papers.filter(p => 
+    (selectedYear === 'all' || p.year === parseInt(selectedYear, 10)) &&
+    (selectedSubject === 'all' || p.subject === selectedSubject) &&
+    (selectedMedium === 'all' || p.medium === selectedMedium)
+  ), [papers, selectedYear, selectedSubject, selectedMedium]);
+  
+  const FilterSelect = ({ label, value, onChange, options }) => (
+     <div>
+        <label className="block text-sm font-medium text-slate-300">{label}</label>
+        <select value={value} onChange={onChange} className="mt-1 block w-full p-2 bg-slate-700 border-slate-600 text-slate-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+            {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+        </select>
+    </div>
+  );
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      <h2 className="text-3xl font-bold text-slate-100">{t('pastPapersTitle')}</h2>
+      <AddPaperForm onAdd={onAdd} t={t} />
+      <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <FilterSelect label={t('filterByYear')} value={selectedYear} onChange={e => setSelectedYear(e.target.value)} options={[{value: 'all', label: t('allYears')}, ...years.map(y => ({value: y.toString(), label: y.toString()}))]} />
+        <FilterSelect label={t('filterBySubject')} value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} options={[{value: 'all', label: t('allSubjects')}, ...subjects.map(s => ({value: s, label: t(subjectKeys[s])}))]} />
+        <FilterSelect label={t('filterByMedium')} value={selectedMedium} onChange={e => setSelectedMedium(e.target.value)} options={[{value: 'all', label: t('allMediums')}, ...mediums.map(m => ({value: m, label: t(mediumKeys[m])}))]} />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredPapers.length > 0 ? filteredPapers.map((paper) => (
+          <div key={paper.id} className="bg-slate-800 p-4 rounded-xl shadow-md border border-slate-700 flex flex-col justify-between transition-transform duration-200 hover:scale-105 hover:border-sky-700">
+            <div>
+              <p className="font-bold text-lg text-sky-400">{paper.year}</p>
+              <p className="font-semibold text-slate-200 mt-1">{t(subjectKeys[paper.subject])}</p>
+              <p className="text-sm text-slate-400">{t(mediumKeys[paper.medium])}</p>
+            </div>
+            <div className="flex items-center justify-between mt-4">
+              <a href={paper.url} target="_blank" rel="noopener noreferrer" download={paper.fileName} className="flex-grow text-center bg-sky-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-sky-500 transition-all">{t('downloadPaper')}</a>
+              {paper.isUserAdded && (
+                <button onClick={() => onDelete(paper.id)} title={t('deletePaper')} className="ml-2 p-2 text-slate-500 hover:text-red-500 transition rounded-md hover:bg-slate-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )) : (
+          <div className="col-span-full text-center py-10"><p className="text-slate-500 italic">{t('noPapersFound')}</p></div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+// The main App component that orchestrates everything.
+const App = () => {
+  const [language, setLanguage] = useState('en');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [textInput, setTextInput] = useState('');
+  const [inputMode, setInputMode] = useState('file');
+  const [summary, setSummary] = useState('');
+  const [quiz, setQuiz] = useState([]);
+  const [timetable, setTimetable] = useState(() => JSON.parse(localStorage.getItem('timetable') || '[]'));
+  const [userPastPapers, setUserPastPapers] = useState(() => JSON.parse(localStorage.getItem('userPastPapers') || '[]'));
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [currentView, setCurrentView] = useState('summary');
+  const isCancelledRef = useRef(false);
+
+  useEffect(() => localStorage.setItem('timetable', JSON.stringify(timetable)), [timetable]);
+  useEffect(() => localStorage.setItem('userPastPapers', JSON.stringify(userPastPapers)), [userPastPapers]);
+
+  const t = useCallback((key) => UI_TEXT[language]?.[key] || key, [language]);
+  
+  const addTimetableEntry = (entry) => setTimetable(prev => [...prev, { ...entry, id: Date.now() }]);
+  const deleteTimetableEntry = (id) => setTimetable(prev => prev.filter(entry => entry.id !== id));
+  
+  const addPastPaper = (paper) => setUserPastPapers(prev => [...prev, { ...paper, id: \`user-\${Date.now()}\`, isUserAdded: true }]);
+  const deletePastPaper = (id) => setUserPastPapers(prev => prev.filter(p => p.id !== id));
+  
+  const allPastPapers = useMemo(() => [...PAST_PAPERS_DATA, ...userPastPapers].sort((a,b) => b.year - a.year), [userPastPapers]);
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      setError(t('fileSizeLimit'));
+      return setSelectedFile(null);
+    }
+    setSelectedFile(file);
+    setTextInput('');
+    setInputMode('file');
+    setError('');
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    const fileInput = document.getElementById('dropzone-file');
+    if (fileInput) fileInput.value = "";
+  };
+  
+  const handleTextChange = (event) => {
+    setTextInput(event.target.value);
+    setSelectedFile(null);
+    setInputMode('text');
+    setError('');
+  };
+
+  const handleStopGenerating = () => {
+    isCancelledRef.current = true;
+    setIsLoading(false);
+  };
+
+  const handleGenerate = async () => {
+    if ((inputMode === 'file' && !selectedFile) || (inputMode === 'text' && !textInput.trim())) {
+      return setError(t('errorNoInput'));
+    }
+    isCancelledRef.current = false;
+    setIsLoading(true);
+    setError('');
+    try {
+      const result = (inputMode === 'file' && selectedFile)
+        ? await generateSummaryAndQuiz(selectedFile, language)
+        : await generateSummaryAndQuizFromText(textInput, language);
+      if (!isCancelledRef.current) {
+        setSummary(result.summary);
+        setQuiz(result.quiz);
+        setCurrentView('summary');
+      }
+    } catch (err) {
+      if (!isCancelledRef.current) {
+        console.error(err);
+        setError(t('errorGeneration'));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const viewIcons = useMemo(() => ({
+    summary: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" /></svg>,
+    quiz: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+    translator: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.193 5.5 10 6.817 10 8.5c0 1.933 1.567 3.5 3.5 3.5s3.5-1.567 3.5-3.5c0-1.683-1.193-3-2.751-3.5" /></svg>,
+    timetable: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>,
+    pastPapers: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h2a2 2 0 002-2V4a2 2 0 00-2-2H9z" /><path d="M4 12a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z" /></svg>,
+  }), []);
+
+  const hasContentToGenerate = !!selectedFile || textInput.trim().length > 0;
+  const hasGeneratedContent = summary.length > 0;
+
+  return (
+    <div className="min-h-screen font-sans text-slate-300">
+      <div className="container mx-auto p-4 md:p-8">
+        <Header language={language} setLanguage={setLanguage} t={t} />
+        <main className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <aside className="lg:col-span-1 space-y-6">
+            <div className="bg-slate-800 p-6 rounded-xl shadow-md border border-slate-700">
+              <h2 className="text-xl font-bold text-slate-100 mb-4">{t('uploadCardTitle')}</h2>
+              <div className="flex border-b border-slate-700 mb-4">
+                <button onClick={() => setInputMode('file')} className={\`px-4 py-2 text-sm font-medium transition-colors \${inputMode === 'file' ? 'border-b-2 border-sky-500 text-sky-400' : 'text-slate-400 hover:text-slate-200'}\`}>{t('fileInputTab')}</button>
+                <button onClick={() => setInputMode('text')} className={\`px-4 py-2 text-sm font-medium transition-colors \${inputMode === 'text' ? 'border-b-2 border-sky-500 text-sky-400' : 'text-slate-400 hover:text-slate-200'}\`}>{t('textInputTab')}</button>
+              </div>
+              {inputMode === 'file' && (
+                <div className="w-full animate-fade-in">
+                  {!selectedFile ? (
+                    <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-slate-600 border-dashed rounded-lg cursor-pointer bg-slate-900 hover:bg-slate-700 transition">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                        <p className="mb-2 text-sm text-slate-400 text-center"><span className="font-semibold">{t('uploadHint')}</span></p>
+                        <p className="text-xs text-slate-500">{t('supportedFiles')}</p>
+                      </div>
+                      <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.webp"/>
+                    </label>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-48 border-2 border-sky-800 rounded-lg bg-sky-900/30 p-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-sky-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                      <p className="mt-2 font-semibold text-slate-200">{t('fileSelected')}</p>
+                      <p className="text-sm text-slate-300 font-medium truncate w-full text-center">{selectedFile.name}</p>
+                      <button onClick={handleRemoveFile} className="mt-4 text-sm text-red-500 hover:underline">{t('removeFile')}</button>
+                    </div>
+                  )}
+                </div>
+              )}
+              {inputMode === 'text' && (
+                <div className="w-full animate-fade-in">
+                  <textarea value={textInput} onChange={handleTextChange} placeholder={t('textInputPlaceholder')} className="w-full h-48 p-3 border-2 border-slate-600 rounded-lg bg-slate-700 text-slate-200 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-400" />
+                </div>
+              )}
+              <p className="mt-1 text-xs text-slate-500">{t('fileSizeLimit')}</p>
+              <button onClick={handleGenerate} disabled={isLoading || !hasContentToGenerate} className="w-full mt-6 bg-sky-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-sky-500 transition-transform transform hover:scale-105 disabled:bg-slate-600 disabled:cursor-not-allowed disabled:transform-none">
+                {isLoading ? t('generating') : t('generateButton')}
+              </button>
+            </div>
+          </aside>
+          <section className="lg:col-span-2 bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md min-h-[60vh] flex flex-col border border-slate-700">
+            <div className="flex flex-wrap gap-2 border-b border-slate-700 pb-4 mb-6">
+              <TabButton label={t('summaryTab')} icon={viewIcons.summary} isActive={currentView === 'summary'} onClick={() => setCurrentView('summary')} />
+              <TabButton label={t('quizTab')} icon={viewIcons.quiz} isActive={currentView === 'quiz'} onClick={() => setCurrentView('quiz')} disabled={!hasGeneratedContent} />
+              <TabButton label={t('translatorTab')} icon={viewIcons.translator} isActive={currentView === 'translator'} onClick={() => setCurrentView('translator')} />
+              <TabButton label={t('timetableTab')} icon={viewIcons.timetable} isActive={currentView === 'timetable'} onClick={() => setCurrentView('timetable')} />
+              <TabButton label={t('pastPapersTab')} icon={viewIcons.pastPapers} isActive={currentView === 'pastPapers'} onClick={() => setCurrentView('pastPapers')} />
+            </div>
+            <div className="flex-grow">
+              {error && (
+                <div className="bg-red-900/30 border-l-4 border-red-500 text-red-300 p-4 rounded-md" role="alert">
+                  <p className="font-bold">{t('errorTitle')}</p><p>{error}</p>
+                </div>
+              )}
+              {isLoading && <Loader text={t('generating')} onStop={handleStopGenerating} stopText={t('stopGenerating')} />}
+              {!isLoading && !error && (
+                <>
+                  {currentView === 'summary' && (hasGeneratedContent ? <div className="space-y-4 animate-fade-in"><h2 className="text-3xl font-bold text-slate-100">{t('summaryTitle')}</h2><p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{summary}</p></div> : <WelcomeView t={t} />)}
+                  {currentView === 'quiz' && <QuizView quiz={quiz} t={t} />}
+                  {currentView === 'translator' && <TranslatorView t={t} />}
+                  {currentView === 'timetable' && <TimetableView entries={timetable} onAdd={addTimetableEntry} onDelete={deleteTimetableEntry} t={t} />}
+                  {currentView === 'pastPapers' && <PastPapersView papers={allPastPapers} onAdd={addPastPaper} onDelete={deletePastPaper} t={t} />}
+                </>
+              )}
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+// --- Application Entry Point ---
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
+}
+const root = ReactDOM.createRoot(rootElement);
+root.render(<React.StrictMode><App /></React.StrictMode>);
+
+    </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnSphere AI - Your AI-Powered Learning Assistant</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="brand">
+                    <h1 class="app-title">LearnSphere AI</h1>
+                    <p class="app-tagline" id="tagline">Your AI-Powered Learning Assistant</p>
+                    <span class="version">v2.0</span>
+                </div>
+                <button class="language-toggle" id="langToggle" aria-label="Toggle Language">
+                    <span id="langToggleText">සිං</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload Section (Initial View) -->
+            <section class="upload-section" id="uploadSection">
+                <div class="upload-card">
+                    <div class="upload-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <h2 class="upload-title" id="uploadTitle">Provide Your Notes</h2>
+                    <p class="upload-hint" id="uploadHint">Upload a PDF, image, or document to start.</p>
+                    
+                    <div class="file-info" id="fileInfo" style="display: none;">
+                        <div class="file-details">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                <polyline points="13 2 13 9 20 9"></polyline>
+                            </svg>
+                            <div class="file-text">
+                                <div class="file-name" id="fileName"></div>
+                                <div class="file-size" id="fileSize"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf,.png,.jpg,.jpeg,.webp">
+                    <label for="fileInput" class="file-label">
+                        <span id="fileLabelText">Choose File</span>
+                    </label>
+                    
+                    <div class="file-requirements">
+                        <p id="supportedFiles">Supported: .pdf, .png, .jpg, .jpeg, .webp</p>
+                        <p id="fileSizeLimit">Max file size: 10MB</p>
+                    </div>
+
+                    <button class="generate-btn" id="generateBtn" disabled>
+                        <span id="generateBtnText">Generate Summary &amp; Quiz</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Tabbed Content Section (Hidden Initially) -->
+            <section class="tabbed-section" id="tabbedSection" style="display: none;">
+                <!-- Tab Navigation -->
+                <div class="tab-nav">
+                    <button class="tab-button active" data-tab="summary" id="summaryTabBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <span id="summaryTabText">Summary</span>
+                    </button>
+                    <button class="tab-button" data-tab="quiz" id="quizTabBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <span id="quizTabText">Quiz</span>
+                    </button>
+                    <button class="tab-button" data-tab="timetable" id="timetableTabBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span id="timetableTabText">Timetable</span>
+                    </button>
+                    <button class="tab-button" data-tab="translator" id="translatorTabBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"></path>
+                        </svg>
+                        <span id="translatorTabText">Translator</span>
+                    </button>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="tab-content-wrapper">
+                    <!-- Summary Tab -->
+                    <div class="tab-content active" id="summaryTab">
+                        <div class="content-card">
+                            <h3 class="content-title" id="summaryContentTitle">Document Summary</h3>
+                            <div class="summary-content" id="summaryContent">
+                                <p>Loading summary...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Tab -->
+                    <div class="tab-content" id="quizTab">
+                        <div class="content-card">
+                            <h3 class="content-title" id="quizContentTitle">Knowledge Quiz</h3>
+                            <div class="quiz-container" id="quizContainer">
+                                <!-- Quiz questions will be populated here -->
+                            </div>
+                            <div class="quiz-result" id="quizResult" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Timetable Tab -->
+                    <div class="tab-content" id="timetableTab">
+                        <div class="content-card">
+                            <h3 class="content-title" id="timetableContentTitle">Study Timetable</h3>
+                            
+                            <form class="timetable-form" id="timetableForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="subject" id="subjectLabel">Subject</label>
+                                        <input type="text" id="subject" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="day" id="dayLabel">Day</label>
+                                        <select id="day" required>
+                                            <option value="Monday">Monday</option>
+                                            <option value="Tuesday">Tuesday</option>
+                                            <option value="Wednesday">Wednesday</option>
+                                            <option value="Thursday">Thursday</option>
+                                            <option value="Friday">Friday</option>
+                                            <option value="Saturday">Saturday</option>
+                                            <option value="Sunday">Sunday</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="time" id="timeLabel">Time</label>
+                                        <input type="time" id="time" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="description" id="descriptionLabel">Description</label>
+                                        <input type="text" id="description" placeholder="Optional">
+                                    </div>
+                                </div>
+                                <button type="submit" class="form-submit-btn" id="addScheduleBtn">
+                                    <span id="addScheduleBtnText">Add Schedule</span>
+                                </button>
+                            </form>
+
+                            <div class="timetable-list" id="timetableList">
+                                <p class="empty-state" id="emptyTimetable">No schedules added yet. Create your first one!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Translator Tab -->
+                    <div class="tab-content" id="translatorTab">
+                        <div class="content-card">
+                            <h3 class="content-title" id="translatorContentTitle">Language Translator</h3>
+                            
+                            <div class="translator-container">
+                                <div class="translation-direction">
+                                    <button class="direction-btn active" id="enToSi" data-direction="en-si">
+                                        English → Sinhala
+                                    </button>
+                                    <button class="direction-btn" id="siToEn" data-direction="si-en">
+                                        Sinhala → English
+                                    </button>
+                                </div>
+
+                                <div class="translation-panels">
+                                    <div class="translation-panel">
+                                        <label id="inputLabel">Input Text</label>
+                                        <textarea id="inputText" rows="6" placeholder="Enter text to translate..."></textarea>
+                                    </div>
+                                    <div class="translation-arrow">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            <polyline points="12 5 19 12 12 19"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="translation-panel">
+                                        <label id="outputLabel">Translation</label>
+                                        <textarea id="outputText" rows="6" readonly placeholder="Translation will appear here..."></textarea>
+                                    </div>
+                                </div>
+
+                                <button class="translate-btn" id="translateBtn">
+                                    <span id="translateBtnText">Translate</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p id="loadingText">Generating...</p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
